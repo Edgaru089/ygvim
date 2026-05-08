@@ -1,0 +1,203 @@
+package ui
+
+import (
+	"fmt"
+	"log"
+	"reflect"
+
+	"edgaru089.ink/go/ygvim/internal/util"
+)
+
+var (
+	handler map[string]func(ui *UI, args []any)
+)
+
+// shorthand to cast MsgPack ints (that are sometimes int64, sometimes uint64) into plain int
+//
+// Yes i know int is shorter, no i don't care F you
+func intf64(i any) int {
+	v := reflect.ValueOf(i)
+	if v.CanInt() {
+		return (int)(v.Int())
+	}
+	if v.CanUint() {
+		return (int)(v.Uint())
+	}
+
+	panic(fmt.Errorf("intf64: %T is not int64/uint64", i))
+}
+
+func init() {
+	handler = make(map[string]func(ui *UI, args []any))
+
+	//////// global events ////////
+
+	handler["set_icon"] = func(ui *UI, args []any) {}
+	handler["set_title"] = func(ui *UI, args []any) {
+		ui.window.SetTitle(args[0].(string))
+	}
+	handler["busy_start"] = func(ui *UI, args []any) {}
+	handler["busy_stop"] = func(ui *UI, args []any) { /* TODO hide mouse when busy */ }
+	handler["bell"] = func(ui *UI, args []any) {}
+	handler["visual_bell"] = func(ui *UI, args []any) { /* TODO bells */ }
+	handler["flush"] = func(ui *UI, args []any) {}
+
+	handler["flush"] = func(ui *UI, args []any) {}
+	handler["flush"] = func(ui *UI, args []any) {}
+	handler["flush"] = func(ui *UI, args []any) {}
+	handler["flush"] = func(ui *UI, args []any) {}
+
+	//////// grid events (line based) ////////
+
+	handler["grid_resize"] = func(ui *UI, args []any) {
+		grid_id := intf64(args[0])
+		grid := ui.grids[grid_id]
+		if grid == nil {
+			grid = &Grid{}
+			ui.grids[grid_id] = grid
+		}
+
+		grid.Resize(intf64(args[1]), intf64(args[2]))
+	}
+
+	handler["default_colors_set"] = func(ui *UI, args []any) {
+		rgb_fg, rgb_bg, rgb_sp := intf64(args[0]), intf64(args[1]), intf64(args[2])
+		ui.hl[0] = Highlight{
+			fg:      util.RGB1(rgb_fg),
+			bg:      util.RGB1(rgb_bg),
+			special: util.RGB1(rgb_sp),
+			// every other flag is false.
+		}
+	}
+
+	handler["hl_attr_define"] = func(ui *UI, args []any) {
+		hl := Highlight{}
+		id := intf64(args[0])
+		rgb_attr := args[1].(map[string]any)
+
+		// every key is optional, so iterate and set each key
+		for key, val := range rgb_attr {
+			switch key {
+			case "foreground":
+				hl.fg = util.RGB1(intf64(val))
+			case "background":
+				hl.bg = util.RGB1(intf64(val))
+			case "special":
+				hl.special = util.RGB1(intf64(val))
+
+			case "reverse":
+				hl.reverse = val.(bool)
+			case "italic":
+				hl.italic = val.(bool)
+			case "bold":
+				hl.bold = val.(bool)
+			case "strikethrough":
+				hl.strikethrough = val.(bool)
+			case "underline":
+				hl.underline = val.(bool)
+			case "undercurl":
+				hl.undercurl = val.(bool)
+			case "underdouble":
+				hl.underdouble = val.(bool)
+			case "underdotted":
+				hl.underdotted = val.(bool)
+			case "underdashed":
+				hl.underdashed = val.(bool)
+			case "url":
+				hl.url = val.(bool)
+			}
+		}
+
+		ui.hl[id] = hl
+	}
+
+	//handler["hl_group_set"] = func(ui *UI, args []any) {}
+
+	handler["grid_line"] = func(ui *UI, args []any) {
+		grid := ui.grids[intf64(args[0])]
+
+		row := intf64(args[1])
+		col := intf64(args[2])
+		cells := args[3].([]any)
+		hlid := ui.last_hlid
+
+		for _, cell_any := range cells {
+			cell := cell_any.([]any)
+			text := cell[0].(string)
+
+			// set hl_id if present
+			if len(cell) >= 2 {
+				hlid = intf64(cell[1])
+			}
+
+			// get repeat times
+			repeat := 1
+			if len(cell) >= 3 {
+				repeat = intf64(cell[2])
+			}
+
+			// write the cells
+			for i := 0; i < repeat; i++ {
+				grid.cells[row][col] = Cell{
+					text: text,
+					hlid: hlid,
+					wide: util.IsCharWide(text),
+				}
+				col++
+			}
+		}
+	}
+
+	handler["grid_clear"] = func(ui *UI, args []any) {
+		ui.grids[intf64(args[0])].Clear()
+	}
+	handler["grid_cursor_goto"] = func(ui *UI, args []any) {
+		grid := ui.grids[intf64(args[0])]
+
+		grid.cursor_row = intf64(args[1])
+		grid.cursor_col = intf64(args[2])
+	}
+
+	handler["grid_scroll"] = func(ui *UI, args []any) {
+	}
+}
+
+// callRedrawEvent calls the given message, recovering if paniced.
+//
+// args should be []any, but just in case it panics the cast is done here to recover.
+//
+// Every event comes in this format: [ 'message_type', [args...], [args...] ]
+// where every [args...] slice following 'message_type' calls the message RPC
+// once with the given arguments, therefore the RPC (and also this function)
+// sometimes get called multiple times in a single event, once for every [args...] slice.
+func (ui *UI) callRedrawEvent(msg string, args any, f func(*UI, []any)) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			log.Printf("HandleRedraw: panic('%s') processing message('%s') %v", err, msg, args)
+		}
+	}()
+
+	f(ui, args.([]any))
+}
+
+// HandleRedraw handles a redraw message from Nvim.
+func (ui *UI) HandleRedraw(args ...[]any) {
+	for _, e := range args {
+		msg, ok := e[0].(string)
+		if !ok {
+			log.Printf("HandleRedraw: message has no type string: %v", e)
+			continue
+		}
+
+		f, ok := handler[msg]
+		if ok {
+			// multiple calls in same event
+			for _, args := range e[1:] {
+				ui.callRedrawEvent(msg, args, f)
+			}
+		} else {
+			log.Printf("HandleRedraw: ignoring message type %s", msg)
+		}
+	}
+}

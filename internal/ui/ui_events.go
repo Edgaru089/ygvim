@@ -168,6 +168,22 @@ func init() {
 	}
 
 	handler["grid_scroll"] = func(ui *UI, args []any) {
+		grid := ui.grids[intf64(args[0])]
+		top, bot := intf64(args[1]), intf64(args[2])
+		left, right := intf64(args[3]), intf64(args[4])
+		rows, _ := intf64(args[5]), intf64(args[6])
+
+		if rows > 0 {
+			// move rectangle up
+			for line := top + rows; line < bot; line++ {
+				copy(grid.cells[line-rows][left:right], grid.cells[line][left:right])
+			}
+		} else if rows < 0 {
+			// move rectangle down
+			for line := bot + rows - 1; line >= top; line-- {
+				copy(grid.cells[line-rows][left:right], grid.cells[line][left:right])
+			}
+		}
 	}
 }
 

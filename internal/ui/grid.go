@@ -3,6 +3,8 @@ package ui
 import (
 	"image/color"
 	"slices"
+
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 // Cell contains a single cell in the display grid.
@@ -26,7 +28,7 @@ type Highlight struct {
 	underdotted, underdashed            bool
 	underdouble                         bool // double underline
 
-	url bool // clickable hyperlink
+	url string // clickable hyperlink if len!=0
 }
 
 // Grid represents a Nvim grid.
@@ -37,6 +39,9 @@ type Grid struct {
 	cells         [][]Cell
 
 	cursor_row, cursor_col int
+
+	vertices []sdl.Vertex
+	indices  []int32
 }
 
 // Clear clears the grid, every cell

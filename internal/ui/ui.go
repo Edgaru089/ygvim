@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"sync"
+
 	"edgaru089.ink/go/ygvim/internal/util/itype"
 	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/neovim/go-client/nvim"
@@ -8,6 +10,8 @@ import (
 
 // UI contains all client side data for the Nvim UI client
 type UI struct {
+	sync.Mutex
+
 	width, height int // only used for now cuz single grid mode
 	cellsize      itype.Vec2i
 

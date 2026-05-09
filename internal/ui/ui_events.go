@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"edgaru089.ink/go/ygvim/internal/util"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 var (
@@ -40,12 +41,12 @@ func init() {
 	handler["busy_stop"] = func(ui *UI, args []any) { /* TODO hide mouse when busy */ }
 	handler["bell"] = func(ui *UI, args []any) {}
 	handler["visual_bell"] = func(ui *UI, args []any) { /* TODO bells */ }
-	handler["flush"] = func(ui *UI, args []any) {}
 
-	handler["flush"] = func(ui *UI, args []any) {}
-	handler["flush"] = func(ui *UI, args []any) {}
-	handler["flush"] = func(ui *UI, args []any) {}
-	handler["flush"] = func(ui *UI, args []any) {}
+	handler["flush"] = func(ui *UI, args []any) {
+		for _, grid := range ui.grids {
+			grid.updateVertices(ui)
+		}
+	}
 
 	//////// grid events (line based) ////////
 
@@ -104,7 +105,7 @@ func init() {
 			case "underdashed":
 				hl.underdashed = val.(bool)
 			case "url":
-				hl.url = val.(bool)
+				hl.url = val.(string)
 			}
 		}
 
@@ -156,6 +157,14 @@ func init() {
 
 		grid.cursor_row = intf64(args[1])
 		grid.cursor_col = intf64(args[2])
+
+		ui.window.SetTextInputArea(
+			&sdl.Rect{
+				X: int32(grid.cursor_col * ui.cellsize[0]),
+				Y: int32(grid.cursor_row * ui.cellsize[1]),
+				W: int32(ui.cellsize[0]),
+				H: int32(ui.cellsize[1]),
+			}, 0)
 	}
 
 	handler["grid_scroll"] = func(ui *UI, args []any) {
@@ -178,11 +187,15 @@ func (ui *UI) callRedrawEvent(msg string, args any, f func(*UI, []any)) {
 		}
 	}()
 
+	ui.Lock()
+	defer ui.Unlock()
+
 	f(ui, args.([]any))
 }
 
 // HandleRedraw handles a redraw message from Nvim.
 func (ui *UI) HandleRedraw(args ...[]any) {
+
 	for _, e := range args {
 		msg, ok := e[0].(string)
 		if !ok {

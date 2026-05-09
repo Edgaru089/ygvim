@@ -1,12 +1,9 @@
 package main
 
 import (
-	"log"
 	"runtime"
-	"unsafe"
 
 	"github.com/Zyko0/go-sdl3/sdl"
-	"github.com/go-gl/gl/all-core/gl"
 
 	"edgaru089.ink/go/ygvim/internal/ui"
 	"edgaru089.ink/go/ygvim/internal/util/itype"
@@ -18,8 +15,8 @@ func init() {
 
 func main() {
 
-	cellsize := itype.Vec2i{17, 34}
-	width, height := 80, 25
+	cellsize := itype.Vec2i{8, 16}
+	width, height := 100, 32
 
 	sdl.LoadLibrary(sdl.Path())
 	defer sdl.Quit()
@@ -28,33 +25,23 @@ func main() {
 		panic(err)
 	}
 
-	window, err := sdl.CreateWindow(
-		"Hello world",
+	window, ren, err := sdl.CreateWindowAndRenderer(
+		"gvim",
 		cellsize[0]*width, cellsize[1]*height,
-		sdl.WINDOW_OPENGL|sdl.WINDOW_RESIZABLE)
+		sdl.WINDOW_RESIZABLE)
 	if err != nil {
 		panic(err)
 	}
 	defer window.Destroy()
+	defer ren.Destroy()
 
-	// create context (per-window)
-	_, err = sdl.GL_CreateContext(window)
-	if err != nil {
-		panic(err)
-	}
-
-	// vsync
-	sdl.GL_SetSwapInterval(1)
-
-	// initialize go-gl with given function lookup
-	if err = gl.InitWithProcAddrFunc(func(name string) unsafe.Pointer {
-		return unsafe.Pointer(sdl.GL_GetProcAddress(name))
-	}); err != nil {
-		panic(err)
-	}
+	ren.SetVSync(1)
 
 	nvimui := ui.InvokeNvim(window, width, height, cellsize)
 	defer func(*ui.UI) {}(nvimui)
+
+	window.StartTextInput()
+	defer window.StopTextInput()
 
 	// main loop
 	running := true
@@ -62,17 +49,22 @@ func main() {
 		var event sdl.Event
 
 		for sdl.PollEvent(&event) {
-			if event.Type == sdl.EVENT_QUIT {
+			switch event.Type {
+			case sdl.EVENT_QUIT:
 				running = false
+			case sdl.EVENT_TEXT_INPUT:
+				nvimui.InputText(event.TextInputEvent().Text)
+			case sdl.EVENT_KEY_DOWN:
+				nvimui.InputKey(event.KeyboardEvent().Key, event.KeyboardEvent().Mod)
 			}
 		}
 
-		gl.ClearColor(0, 0, 0, 1)
-		gl.Clear(gl.COLOR_BUFFER_BIT)
+		ren.SetDrawColor(0, 0, 0, 255)
+		ren.Clear()
 
-		sdl.GL_SwapWindow(window)
+		nvimui.Render(ren)
+
+		ren.Present()
 	}
-
-	log.Printf("len([]interface{}{\"str\"})=%d", len([]any{"str"}))
 
 }

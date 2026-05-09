@@ -25,6 +25,8 @@ func (ui *UI) InputKey(key sdl.Keycode, mod sdl.Keymod) {
 		ui.nvim.Input("<CR>")
 	case sdl.K_ESCAPE:
 		ui.nvim.Input("<Esc>")
+	case sdl.K_BACKSPACE:
+		ui.nvim.Input("<BS>")
 	default:
 		if (mod & sdl.KMOD_CTRL) != 0 {
 

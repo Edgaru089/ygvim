@@ -21,12 +21,20 @@ func (grid *Grid) updateVertices(ui *UI) {
 			if hl.bg.A != 255 {
 				hl = ui.hl[0]
 			}
-
-			bg := sdl.FColor{
+			fg := sdl.FColor{
 				R: float32(hl.fg.R) / 255.0,
 				G: float32(hl.fg.G) / 255.0,
 				B: float32(hl.fg.B) / 255.0,
 				A: 1.0,
+			}
+			bg := sdl.FColor{
+				R: float32(hl.bg.R) / 255.0,
+				G: float32(hl.bg.G) / 255.0,
+				B: float32(hl.bg.B) / 255.0,
+				A: 1.0,
+			}
+			if row == grid.cursor_row && col == grid.cursor_col {
+				fg, bg = bg, fg
 			}
 			grid.vertices = append(grid.vertices,
 				sdl.Vertex{
@@ -72,8 +80,11 @@ func (ui *UI) Render(renderer *sdl.Renderer) {
 					hl = ui.hl[0]
 				}
 
-				renderer.SetDrawColor(hl.fg.R, hl.fg.G, hl.fg.B, 255)
-				renderer.SetDrawColor(0, 0, 0, 255)
+				if row == grid.cursor_row && col == grid.cursor_col {
+					renderer.SetDrawColor(hl.bg.R, hl.bg.G, hl.bg.B, 255)
+				} else {
+					renderer.SetDrawColor(hl.fg.R, hl.fg.G, hl.fg.B, 255)
+				}
 				renderer.DebugText(float32(offx), float32(offy), cell.text)
 			}
 		}

@@ -3,6 +3,7 @@ package ui
 import (
 	"sync"
 
+	"edgaru089.ink/go/ygvim/internal/font"
 	"edgaru089.ink/go/ygvim/internal/util/itype"
 	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/neovim/go-client/nvim"
@@ -23,4 +24,6 @@ type UI struct {
 
 	window *sdl.Window
 	nvim   *nvim.Nvim
+
+	fontset *font.Fontset
 }

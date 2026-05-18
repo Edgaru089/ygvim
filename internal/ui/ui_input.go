@@ -21,6 +21,14 @@ func (ui *UI) InputText(str string) {
 
 func (ui *UI) InputKey(key sdl.Keycode, mod sdl.Keymod) {
 	switch key {
+	case sdl.K_UP:
+		ui.nvim.Input("<Up>")
+	case sdl.K_DOWN:
+		ui.nvim.Input("<Down>")
+	case sdl.K_LEFT:
+		ui.nvim.Input("<Left>")
+	case sdl.K_RIGHT:
+		ui.nvim.Input("<Right>")
 	case sdl.K_RETURN:
 		ui.nvim.Input("<CR>")
 	case sdl.K_ESCAPE:

@@ -2,12 +2,18 @@ package font
 
 import (
 	"fmt"
+	"log"
 
 	"edgaru089.ink/go/ygvim/fc"
 	"edgaru089.ink/go/ygvim/internal/util/itype"
 	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/Zyko0/go-sdl3/ttf"
 )
+
+// setNewTextureProps sets the scaling mode of new textures to nearest.
+func setNewTextureProps(tex *sdl.Texture) {
+	tex.SetScaleMode(sdl.SCALEMODE_NEAREST)
+}
 
 // newGlyph really rasterizes a new glyph and puts it into
 // a new rectpack in the texture.
@@ -52,6 +58,8 @@ func (f *Fontset) newGlyph(c rune) (g Glyph, err error) {
 	// create a new texture from image
 	tex, _ := f.renderer.CreateTexture(surface.Format, sdl.TEXTUREACCESS_STATIC, int(surface.W), int(surface.H))
 	tex.Update(nil, surface.Pixels(), surface.Pitch)
+	tex.SetScaleMode(sdl.SCALEMODE_NEAREST)
+	tex.SetBlendMode(sdl.BLENDMODE_NONE)
 
 	// draw
 	f.renderer.SetRenderTarget(f.texture)
@@ -64,7 +72,6 @@ func (f *Fontset) newGlyph(c rune) (g Glyph, err error) {
 			W: float32(rect.Width),
 			H: float32(rect.Height),
 		})
-	f.renderer.Present()
 	f.renderer.SetRenderTarget(nil)
 
 	g.TextureRect = rect
@@ -82,7 +89,7 @@ func (f *Fontset) getFontTTF(fn *fc.Font, i int) (ft *ttf.Font, err error) {
 
 	// gets the font's point size.
 	var ptsize float32
-	if i <= len(f.fonts) {
+	if i < len(f.fonts) {
 		ptsize = f.fonts[i].Height
 	} else if len(f.fonts) > 0 {
 		ptsize = f.fonts[0].Height
@@ -90,6 +97,8 @@ func (f *Fontset) getFontTTF(fn *fc.Font, i int) (ft *ttf.Font, err error) {
 		ptsize = DefaultFontHeight
 	}
 
+	// open.
+	log.Printf("Opening new font: %v", fn)
 	ft, err = ttf.OpenFont(fn.File, ptsize)
 	if err != nil {
 		return nil, fmt.Errorf("getFontTTF: error opening font: %e", err)

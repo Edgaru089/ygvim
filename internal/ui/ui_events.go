@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"runtime"
+	"strings"
 
 	"edgaru089.ink/go/ygvim/internal/util"
 	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 var (
-	handler map[string]func(ui *UI, args []any)
+	handler  map[string]func(ui *UI, args []any)
+	stackbuf [4096]byte
 )
 
 // shorthand to cast MsgPack ints (that are sometimes int64, sometimes uint64) into plain int
@@ -45,6 +48,16 @@ func init() {
 	handler["flush"] = func(ui *UI, args []any) {
 		for _, grid := range ui.grids {
 			grid.updateVertices(ui)
+		}
+	}
+
+	handler["option_set"] = func(ui *UI, args []any) {
+		if len(args) < 2 {
+			return
+		}
+		switch args[0].(string) {
+		case "guifont":
+			ui.fontset.SetFontFamilies(strings.Split(args[1].(string), ",")...)
 		}
 	}
 
@@ -198,8 +211,9 @@ func init() {
 func (ui *UI) callRedrawEvent(msg string, args any, f func(*UI, []any)) {
 	defer func() {
 		err := recover()
+		len := runtime.Stack(stackbuf[:], false)
 		if err != nil {
-			log.Printf("HandleRedraw: panic('%s') processing message('%s') %v", err, msg, args)
+			log.Printf("HandleRedraw: panic('%s') processing message('%s') %v\n     stack: %s", err, msg, args, stackbuf[:len])
 		}
 	}()
 

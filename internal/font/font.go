@@ -65,7 +65,7 @@ func NewFontset(renderer *sdl.Renderer) *Fontset {
 		glyphs:     make(map[rune]Glyph),
 		renderer:   renderer,
 		maxtexsize: int(prop),
-		page:       page{rows: make([]row, 1), nextrow: 0},
+		page:       page{rows: make([]row, 0, 1), nextrow: 0},
 	}
 }
 
@@ -89,11 +89,11 @@ func (f *Fontset) clear() {
 	if err != nil {
 		panic(err)
 	}
+	setNewTextureProps(f.texture)
 
 	f.renderer.SetRenderTarget(f.texture)
 	f.renderer.SetDrawColor(255, 255, 255, 255)
 	f.renderer.Clear()
-	f.renderer.Present()
 	f.renderer.SetRenderTarget(nil)
 
 	f.page.rows = f.page.rows[:1]
@@ -111,8 +111,6 @@ func (f *Fontset) clear() {
 //   - :sBold  style, non standard, 's' followed by its style name like "Bold", "Light", "Italic"
 func (f *Fontset) SetFontFamilies(fonts ...string) {
 	f.clear()
-	f.fonts = f.fonts[:0]
-	f.fontfcs = f.fontfcs[:0]
 	f.fonts = slices.Grow(f.fonts, len(fonts)+1)
 	f.fontfcs = slices.Grow(f.fontfcs, len(fonts)+1)
 	firstFontHeight := float32(DefaultFontHeight)
@@ -139,6 +137,8 @@ func (f *Fontset) SetFontFamilies(fonts ...string) {
 			} else if flag[0] == 'h' || flag[0] == 'w' {
 				num, err := strconv.ParseFloat(flag[1:], 32)
 				if err != nil {
+					log.Printf("SetFontFamilies: error parsing number in %s: %e", flag, err)
+				} else {
 					if flag[0] == 'h' {
 						ff.Height = float32(num)
 						if i == 0 {
@@ -147,8 +147,6 @@ func (f *Fontset) SetFontFamilies(fonts ...string) {
 					} else if flag[0] == 'w' {
 						ff.Width = float32(num)
 					}
-				} else {
-					log.Printf("SetFontFamilies: error parsing number in %s: %e", flag, err)
 				}
 			} else if flag[0] == 's' {
 				ff.Style = flag[1:]
@@ -166,6 +164,9 @@ func (f *Fontset) SetFontFamilies(fonts ...string) {
 		})
 	}
 
+	log.Printf("SetFontFamilies done: fonts = %#v", f.fonts)
+	log.Printf("                    fontfcs = %#v", f.fontfcs)
+
 }
 
 // Glyph gets the glyph of a codepoint.
@@ -181,10 +182,14 @@ func (f *Fontset) Glyph(c rune) Glyph {
 	g, err := f.newGlyph(c)
 	if err != nil {
 		if c == unicode.ReplacementChar {
-			panic("Fontset.Glyph: cant rasterize replacement char")
+			panic("Fontset.Glyph: cant rasterize replacement char: " + err.Error())
 		}
 		return f.Glyph(unicode.ReplacementChar)
 	}
 
 	return g
+}
+
+func (f *Fontset) Texture() *sdl.Texture {
+	return f.texture
 }

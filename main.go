@@ -1,9 +1,11 @@
 package main
 
 import (
+	"log"
 	"runtime"
 
 	"github.com/Zyko0/go-sdl3/sdl"
+	"github.com/Zyko0/go-sdl3/ttf"
 
 	"edgaru089.ink/go/ygvim/internal/ui"
 	"edgaru089.ink/go/ygvim/internal/util/itype"
@@ -20,15 +22,32 @@ func main() {
 
 	sdl.LoadLibrary(sdl.Path())
 	defer sdl.Quit()
+	ttf.LoadLibrary(ttf.Path())
+	defer ttf.Quit()
 
 	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
 		panic(err)
 	}
 
-	window, ren, err := sdl.CreateWindowAndRenderer(
+	if err := ttf.Init(); err != nil {
+		panic(err)
+	}
+
+	renderDrivers := []string{}
+	for i := 0; i < sdl.GetNumRenderDrivers(); i++ {
+		renderDrivers = append(renderDrivers, sdl.GetRenderDriver(i))
+	}
+	log.Printf("available SDL render drivers: %v", renderDrivers)
+
+	window, err := sdl.CreateWindow(
 		"gvim",
 		cellsize[0]*width, cellsize[1]*height,
 		sdl.WINDOW_RESIZABLE)
+	if err != nil {
+		panic(err)
+	}
+
+	ren, err := window.CreateRenderer("vulkan")
 	if err != nil {
 		panic(err)
 	}
@@ -37,7 +56,7 @@ func main() {
 
 	ren.SetVSync(1)
 
-	nvimui := ui.InvokeNvim(window, width, height, cellsize)
+	nvimui := ui.InvokeNvim(window, ren, width, height, cellsize)
 	defer func(*ui.UI) {}(nvimui)
 
 	window.StartTextInput()
@@ -58,6 +77,7 @@ func main() {
 				nvimui.InputKey(event.KeyboardEvent().Key, event.KeyboardEvent().Mod)
 			}
 		}
+		nvimui.Lock()
 
 		ren.SetDrawColor(0, 0, 0, 255)
 		ren.Clear()
@@ -65,6 +85,7 @@ func main() {
 		nvimui.Render(ren)
 
 		ren.Present()
+		nvimui.Unlock()
 	}
 
 }

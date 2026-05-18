@@ -67,6 +67,7 @@ func (f *Fontset) packGlyphRect(page *page, width, height int) itype.Recti {
 				log.Printf("failed to create new texture: %e", err)
 				return itype.Recti{0, 0, 2, 2}
 			}
+			setNewTextureProps(newtex)
 
 			// set the new texture as render target and flip it
 			f.renderer.SetRenderTarget(newtex)
@@ -82,7 +83,6 @@ func (f *Fontset) packGlyphRect(page *page, width, height int) itype.Recti {
 					H: float32(f.texture.H),
 				},
 			)
-			f.renderer.Present()
 			f.renderer.SetRenderTarget(nil)
 
 			// sets new texture, destroys old one

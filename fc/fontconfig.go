@@ -38,6 +38,9 @@ type Font struct {
 // MatchFamily finds the best matching font file for the given family name and
 // optional style description. style can be "" to match any style, or a
 // description like "Bold", "Regular", "Light", "Italic", etc.
+//
+// If no font matches the requested family, the returned Font will have an
+// empty File field and no error.
 func MatchFamily(family, style string) (*Font, error) {
 	if family == "" {
 		return nil, fmt.Errorf("fc: family name must not be empty")
@@ -70,28 +73,58 @@ func MatchFamily(family, style string) (*Font, error) {
 	}
 	defer C.FcPatternDestroy(matched)
 
+	if !patternFamilyMatches(matched, family) {
+		return &Font{}, nil
+	}
 	return extractFont(matched)
 }
 
+// patternFamilyMatches reports whether any FC_FAMILY value on pattern
+// case-insensitively matches the requested family name. A single font may
+// carry the family name in multiple languages (e.g. "DengXian" and "等线").
+func patternFamilyMatches(pattern *C.FcPattern, requested string) bool {
+	cReq := C.CString(requested)
+	defer C.free(unsafe.Pointer(cReq))
+
+	for i := C.int(0); ; i++ {
+		var cFamily *C.FcChar8
+		if C.FcPatternGetString(pattern, C.fc_object_family, i, &cFamily) != C.FcResultMatch {
+			break
+		}
+		if cFamily == nil {
+			continue
+		}
+		if C.FcStrCmp((*C.FcChar8)(unsafe.Pointer(cReq)), cFamily) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // MatchCodepoint finds a font file that can render the given Unicode codepoint.
-// families is an optional list of preferred font families, tried in the order
-// given. If no family from the list contains the codepoint, fontconfig's
-// configured fallback fonts are used.
-func MatchCodepoint(codepoint rune, families ...string) (*Font, error) {
+// families is a list of preferred fonts, each specifying a Family and
+// optionally a Style (like "Bold", "Light"). The list is tried in order.
+// If no font from the list contains the codepoint, fontconfig's configured
+// fallback fonts are used.
+//
+// The returned int is the index of the matching family in families, or
+// len(families) if a fallback font was selected.
+func MatchCodepoint(codepoint rune, families []Font) (*Font, int, error) {
 	config := C.FcConfigGetCurrent()
 
-	for _, family := range families {
-		f, err := matchCodepointFamily(config, codepoint, family)
+	for i, fam := range families {
+		f, err := matchCodepointFamily(config, codepoint, fam.Family, fam.Style)
 		if err != nil {
 			continue
 		}
-		return f, nil
+		return f, i, nil
 	}
 
-	return matchCodepointFallback(config, codepoint)
+	f, err := matchCodepointFallback(config, codepoint)
+	return f, len(families), err
 }
 
-func matchCodepointFamily(config *C.FcConfig, codepoint rune, family string) (*Font, error) {
+func matchCodepointFamily(config *C.FcConfig, codepoint rune, family, style string) (*Font, error) {
 	pattern := C.FcPatternCreate()
 	if pattern == nil {
 		return nil, fmt.Errorf("fc: failed to create pattern")
@@ -111,6 +144,12 @@ func matchCodepointFamily(config *C.FcConfig, codepoint rune, family string) (*F
 	defer C.free(unsafe.Pointer(cFamily))
 	C.FcPatternAddString(pattern, C.fc_object_family, (*C.FcChar8)(unsafe.Pointer(cFamily)))
 
+	if style != "" {
+		cStyle := C.CString(style)
+		defer C.free(unsafe.Pointer(cStyle))
+		C.FcPatternAddString(pattern, C.fc_object_style, (*C.FcChar8)(unsafe.Pointer(cStyle)))
+	}
+
 	C.FcConfigSubstitute(config, pattern, C.FcMatchPattern)
 	C.FcDefaultSubstitute(pattern)
 
@@ -121,6 +160,9 @@ func matchCodepointFamily(config *C.FcConfig, codepoint rune, family string) (*F
 	}
 	defer C.FcPatternDestroy(matched)
 
+	if !patternFamilyMatches(matched, family) {
+		return nil, fmt.Errorf("fc: no match for family %q", family)
+	}
 	return extractFont(matched)
 }
 

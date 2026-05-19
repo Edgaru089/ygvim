@@ -30,3 +30,20 @@ type UI struct {
 
 	fontset *font.Fontset
 }
+
+// SetSize resizes the UI. Callbacks are invoked only when
+// this really changes.
+func (ui *UI) SetSize(width, height int) {
+	if ui.width != width || ui.height != height {
+		ui.width, ui.height = width, height
+		ui.nvim.TryResizeUI(width, height)
+	}
+}
+
+// SetWindowSize divides the new window size and calls SetSize.
+func (ui *UI) SetWindowSize(width, height int) {
+	ui.SetSize(
+		width/ui.cellsize[0],
+		height/ui.cellsize[1],
+	)
+}

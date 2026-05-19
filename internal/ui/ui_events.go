@@ -3,11 +3,14 @@ package ui
 import (
 	"fmt"
 	"log"
+	"math"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"edgaru089.ink/go/ygvim/internal/util"
+	"edgaru089.ink/go/ygvim/internal/util/itype"
 	"github.com/Zyko0/go-sdl3/sdl"
 )
 
@@ -55,7 +58,48 @@ func init() {
 		}
 		switch args[0].(string) {
 		case "guifont":
-			ui.fontset.SetFontFamilies(strings.Split(args[1].(string), ",")...)
+			var cellSize itype.Vec2i
+			// custom flags:
+			//  - xXX:  cell width XX, default ceiling(first font size)/2
+			//  - yXX:  cell height XX, default ceiling(first font size)
+			ui.fontset.SetFontFamiliesEx(func(flag string) {
+				if len(flag) < 1 {
+					return
+				}
+				switch flag[0] {
+				case 'x':
+					num, err := strconv.ParseInt(flag[1:], 10, 32)
+					if err != nil {
+						log.Printf("invalid flag %s: %e", flag, err)
+					}
+					cellSize[0] = int(num)
+				case 'y':
+					num, err := strconv.ParseInt(flag[1:], 10, 32)
+					if err != nil {
+						log.Printf("invalid flag %s: %e", flag, err)
+					}
+					cellSize[1] = int(num)
+				default:
+					log.Printf("option_set callback: unknown flag: %s", flag)
+				}
+			}, strings.Split(args[1].(string), ",")...)
+
+			if cellSize[1] == 0 {
+				cellSize[1] = int(math.Ceil(float64(ui.fontset.FirstFontHeight()) * 1.05))
+				if cellSize[1]%2 == 1 {
+					cellSize[1]++
+				}
+			}
+			if cellSize[0] == 0 {
+				cellSize[0] = cellSize[1] / 2
+			}
+
+			if ui.cellsize != cellSize {
+				ui.cellsize = cellSize
+				// resize the window
+				ui.window.SetSize(int32(ui.cellsize[0]*ui.width), int32(ui.cellsize[1]*ui.height))
+			}
+
 			ui.SetNeedRender()
 		}
 	}

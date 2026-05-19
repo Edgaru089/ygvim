@@ -111,6 +111,19 @@ func (f *Fontset) clear() {
 //   - :b      bold, this bypasses the Bold word in style, only use if Bold does not work
 //   - :sBold  style, non standard, 's' followed by its style name like "Bold", "Light", "Italic"
 func (f *Fontset) SetFontFamilies(fonts ...string) {
+	f.SetFontFamiliesEx(nil, fonts...)
+}
+
+// SetFontFamilies resets the fontset using the given font family names.
+//
+// Every font family name can have multiple options trailing:  (:help guifont)
+//
+//   - :hXX    height is XX in pixels, default = 12, same as first font if not present
+//   - :wXX    width is XX in pixels, autocomputed if not present (best only in monospace fonts!)
+//   - :b      bold, this bypasses the Bold word in style, only use if Bold does not work
+//   - :sBold  style, non standard, 's' followed by its style name like "Bold", "Light", "Italic"
+//   - Other flags: the callback is called.
+func (f *Fontset) SetFontFamiliesEx(flagCB func(string), fonts ...string) {
 	f.clear()
 	f.fonts = slices.Grow(f.fonts, len(fonts)+1)
 	f.fontfcs = slices.Grow(f.fontfcs, len(fonts)+1)
@@ -152,7 +165,11 @@ func (f *Fontset) SetFontFamilies(fonts ...string) {
 			} else if flag[0] == 's' {
 				ff.Style = flag[1:]
 			} else {
-				log.Printf("SetFontFamilies: unknown flag: %s", flag)
+				if flagCB != nil {
+					flagCB(flag)
+				} else {
+					log.Printf("SetFontFamilies: unknown flag: %s", flag)
+				}
 			}
 		}
 
@@ -168,6 +185,13 @@ func (f *Fontset) SetFontFamilies(fonts ...string) {
 	log.Printf("SetFontFamilies done: fonts = %#v", f.fonts)
 	log.Printf("                    fontfcs = %#v", f.fontfcs)
 
+}
+
+func (f *Fontset) FirstFontHeight() float32 {
+	if len(f.fonts) < 1 {
+		return DefaultFontHeight
+	}
+	return f.fonts[0].Height
 }
 
 // Glyph gets the glyph of a codepoint.

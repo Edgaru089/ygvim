@@ -101,6 +101,10 @@ func main() {
 			case sdl.EVENT_WINDOW_RESIZED, sdl.EVENT_WINDOW_MAXIMIZED, sdl.EVENT_WINDOW_RESTORED:
 				//w, h := event.WindowEvent().Data1, event.WindowEvent().Data2
 				//window.SetSize(w, h)
+				w, h, err := window.SizeInPixels()
+				if err == nil {
+					nvimui.SetWindowSize(int(w), int(h))
+				}
 			}
 		} else {
 			log.Printf("main: WaitEvent: %e", err)

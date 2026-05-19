@@ -49,8 +49,9 @@ type Fontset struct {
 
 	renderer   *sdl.Renderer
 	texture    *sdl.Texture // only one texture for now
-	maxtexsize int          // max texture size, presumably on both axis
-	page       page         // for rectpacking
+	image      *sdl.Surface
+	maxtexsize int  // max texture size, presumably on both axis
+	page       page // for rectpacking
 }
 
 // NewFontset creates with the given renderer.
@@ -85,11 +86,11 @@ func (f *Fontset) clear() {
 		f.texture.Destroy()
 	}
 	var err error
-	f.texture, err = f.renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, 2, 2)
+	f.image, err = sdl.CreateSurface(2, 2, sdl.PIXELFORMAT_ARGB8888)
 	if err != nil {
 		panic(err)
 	}
-	setNewTextureProps(f.texture)
+	f.image.Clear(1, 1, 1, 1)
 
 	f.renderer.SetRenderTarget(f.texture)
 	f.renderer.SetDrawColor(255, 255, 255, 255)

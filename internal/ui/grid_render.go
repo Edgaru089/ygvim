@@ -41,6 +41,7 @@ func (grid *Grid) updateVertices(ui *UI) {
 		}
 	}
 
+	ui.fontset.FlipTexture()
 	texW, texH := ui.fontset.Texture().W, ui.fontset.Texture().H
 
 	for row, line := range grid.cells {

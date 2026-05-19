@@ -35,7 +35,7 @@ func (f *Fontset) packGlyphRect(page *page, width, height int) itype.Recti {
 
 		// not rows that can't grow enough
 		// (texture's width only grows when height grows)
-		if thisRow.width+width >= int(f.texture.W) {
+		if thisRow.width+width >= int(f.image.W) {
 			continue
 		}
 
@@ -54,41 +54,29 @@ func (f *Fontset) packGlyphRect(page *page, width, height int) itype.Recti {
 		rowHeight := height + height/10
 
 		// grow the texture until it fits
-		newtexWidth, newtexHeight := int(f.texture.W), int(f.texture.H)
-		for page.nextrow+rowHeight >= newtexHeight || width >= newtexWidth {
+		newimgWidth, newimgHeight := int(f.image.W), int(f.image.H)
+		for page.nextrow+rowHeight >= newimgHeight || width >= newimgWidth {
 			// the new row needs to fit at least this new glyph, hence this second condition
-			newtexWidth *= 2
-			newtexHeight *= 2
+			newimgWidth *= 2
+			newimgHeight *= 2
 		}
-		if newtexWidth != int(f.texture.W) || newtexHeight != int(f.texture.H) {
-			// really create a new texture
-			newtex, err := f.renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, newtexWidth, newtexHeight)
+		if newimgWidth != int(f.image.W) || newimgHeight != int(f.image.H) {
+			// really create a new image
+			newimg, err := sdl.CreateSurface(newimgWidth, newimgHeight, sdl.PIXELFORMAT_ARGB8888)
 			if err != nil {
-				log.Printf("failed to create new texture: %e", err)
+				log.Printf("failed to create new image: %e", err)
 				return itype.Recti{0, 0, 2, 2}
 			}
-			setNewTextureProps(newtex)
+			newimg.Clear(1, 1, 1, 0)
 
-			// set the new texture as render target and flip it
-			f.renderer.SetRenderTarget(newtex)
-			f.renderer.SetDrawColor(255, 255, 255, 0)
-			f.renderer.Clear()
-			f.renderer.SetDrawBlendMode(sdl.BLENDMODE_NONE)
-			f.renderer.RenderTexture(
-				f.texture,
-				nil,
-				&sdl.FRect{
-					X: 0, Y: 0,
-					W: float32(f.texture.W),
-					H: float32(f.texture.H),
-				},
-			)
-			f.renderer.SetRenderTarget(nil)
+			// copy to new image
+			f.image.SetBlendMode(sdl.BLENDMODE_NONE)
+			f.image.Blit(nil, newimg, nil)
 
 			// sets new texture, destroys old one
-			var oldtex *sdl.Texture
-			f.texture, oldtex = newtex, f.texture
-			oldtex.Destroy()
+			var oldimg *sdl.Surface
+			f.image, oldimg = newimg, f.image
+			oldimg.Destroy()
 		}
 
 		// appends the new row
@@ -109,4 +97,23 @@ func (f *Fontset) packGlyphRect(page *page, width, height int) itype.Recti {
 	}
 	bestRow.width += width
 	return rect
+}
+
+// FlipTexture flips the internal image buffer into the real texture.
+func (f *Fontset) FlipTexture() {
+	if f.texture == nil || f.image.W != f.texture.W || f.image.H != f.texture.H {
+		newtex, err := f.renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_STREAMING, int(f.image.W), int(f.image.H))
+		if err != nil {
+			log.Printf("failed to create new texture: %e", err)
+			return
+		}
+		setNewTextureProps(newtex)
+
+		if f.texture != nil {
+			f.texture.Destroy()
+		}
+		f.texture = newtex
+	}
+
+	f.texture.Update(nil, f.image.Pixels(), f.image.Pitch)
 }

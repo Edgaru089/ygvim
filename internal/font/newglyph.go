@@ -55,24 +55,8 @@ func (f *Fontset) newGlyph(c rune) (g Glyph, err error) {
 	rect := f.packGlyphRect(&f.page, int(surface.W), int(surface.H))
 
 	// we draw
-	// create a new texture from image
-	tex, _ := f.renderer.CreateTexture(surface.Format, sdl.TEXTUREACCESS_STATIC, int(surface.W), int(surface.H))
-	tex.Update(nil, surface.Pixels(), surface.Pitch)
-	tex.SetScaleMode(sdl.SCALEMODE_NEAREST)
-	tex.SetBlendMode(sdl.BLENDMODE_NONE)
-
-	// draw
-	f.renderer.SetRenderTarget(f.texture)
-	f.renderer.SetDrawBlendMode(sdl.BLENDMODE_NONE)
-	f.renderer.RenderTexture(
-		tex, nil,
-		&sdl.FRect{
-			X: float32(rect.Left),
-			Y: float32(rect.Top),
-			W: float32(rect.Width),
-			H: float32(rect.Height),
-		})
-	f.renderer.SetRenderTarget(nil)
+	surface.SetBlendMode(sdl.BLENDMODE_NONE)
+	surface.Blit(nil, f.image, &sdl.Rect{X: int32(rect.Left), Y: int32(rect.Top)})
 
 	g.TextureRect = rect
 

@@ -46,9 +46,7 @@ func init() {
 	handler["visual_bell"] = func(ui *UI, args []any) { /* TODO bells */ }
 
 	handler["flush"] = func(ui *UI, args []any) {
-		for _, grid := range ui.grids {
-			grid.updateVertices(ui)
-		}
+		ui.SetNeedRender()
 	}
 
 	handler["option_set"] = func(ui *UI, args []any) {
@@ -58,6 +56,7 @@ func init() {
 		switch args[0].(string) {
 		case "guifont":
 			ui.fontset.SetFontFamilies(strings.Split(args[1].(string), ",")...)
+			ui.SetNeedRender()
 		}
 	}
 

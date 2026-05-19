@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"runtime"
+	"sync/atomic"
 
 	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/Zyko0/go-sdl3/ttf"
@@ -57,35 +58,53 @@ func main() {
 	ren.SetVSync(1)
 
 	nvimui := ui.InvokeNvim(window, ren, width, height, cellsize)
-	defer func(*ui.UI) {}(nvimui)
 
 	window.StartTextInput()
 	defer window.StopTextInput()
 
 	// main loop
-	running := true
-	for running {
+	var running atomic.Bool
+	running.Store(true)
+
+	go func() {
+		err := nvimui.Serve()
+		if err != nil {
+			log.Printf("main: nvim.Serve: %e", err)
+		}
+		running.Store(false)
+	}()
+
+	go func() {
+		for running.Load() {
+			nvimui.WaitRender(ren)
+		}
+	}()
+
+	nvimui.AttachUI()
+
+	for running.Load() {
 		var event sdl.Event
 
-		for sdl.PollEvent(&event) {
+		err := sdl.WaitEvent(&event)
+		if err == nil {
 			switch event.Type {
 			case sdl.EVENT_QUIT:
-				running = false
+				running.Store(false)
+
 			case sdl.EVENT_TEXT_INPUT:
 				nvimui.InputText(event.TextInputEvent().Text)
 			case sdl.EVENT_KEY_DOWN:
 				nvimui.InputKey(event.KeyboardEvent().Key, event.KeyboardEvent().Mod)
+
+			case sdl.EVENT_WINDOW_EXPOSED:
+				nvimui.SetNeedFlip()
+			case sdl.EVENT_WINDOW_RESIZED, sdl.EVENT_WINDOW_MAXIMIZED, sdl.EVENT_WINDOW_RESTORED:
+				//w, h := event.WindowEvent().Data1, event.WindowEvent().Data2
+				//window.SetSize(w, h)
 			}
+		} else {
+			log.Printf("main: WaitEvent: %e", err)
 		}
-		nvimui.Lock()
-
-		ren.SetDrawColor(0, 0, 0, 255)
-		ren.Clear()
-
-		nvimui.Render(ren)
-
-		ren.Present()
-		nvimui.Unlock()
 	}
 
 }

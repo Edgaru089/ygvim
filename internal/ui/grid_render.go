@@ -139,20 +139,56 @@ func (grid *Grid) updateVertices(ui *UI) {
 		}
 	}
 
-	for _, id := range indices2 {
-		grid.indices = append(grid.indices, id+int32(len(grid.vertices)))
+	for i := range indices2 {
+		indices2[i] += int32(len(grid.vertices))
 	}
+	grid.indices = append(grid.indices, indices2...)
 	grid.vertices = append(grid.vertices, verts2...)
 
 }
 
-// ui.Lock should already be locked by caller (main)
+func (ui *UI) SetNeedRender() {
+	select {
+	case ui.needren <- struct{}{}:
+	default:
+	}
+}
+
+// SetNeedFlip sends one signal down the needflip chan
+// if there's nothing in it.
+func (ui *UI) SetNeedFlip() {
+	select {
+	case ui.needflip <- struct{}{}:
+	default:
+	}
+}
+
+// ui.Lock should already be called by caller
 func (ui *UI) Render(renderer *sdl.Renderer) {
+	ui.Lock()
+	defer ui.Unlock()
+	renderer.SetDrawColor(0, 0, 0, 255)
+	renderer.Clear()
 
 	renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
 	for _, grid := range ui.grids {
 		renderer.SetDrawColor(255, 255, 255, 255)
 		renderer.RenderGeometry(ui.fontset.Texture(), grid.vertices, grid.indices)
 
+	}
+	renderer.Present()
+}
+
+func (ui *UI) WaitRender(renderer *sdl.Renderer) {
+	select {
+	case <-ui.needren:
+		ui.Lock()
+		for _, grid := range ui.grids {
+			grid.updateVertices(ui)
+		}
+		ui.SetNeedFlip()
+		ui.Unlock()
+	case <-ui.needflip:
+		ui.Render(renderer)
 	}
 }

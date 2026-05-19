@@ -16,19 +16,28 @@ func InvokeNvim(window *sdl.Window, renderer *sdl.Renderer, width, height int, c
 		width:  width, height: height,
 		cellsize: cellsize,
 		fontset:  font.NewFontset(renderer),
+		needren:  make(chan struct{}, 1),
+		needflip: make(chan struct{}, 1),
 	}
 
 	var err error
-	ui.nvim, err = nvim.NewChildProcess(nvim.ChildProcessArgs("--embed"))
+	ui.nvim, err = nvim.NewChildProcess(nvim.ChildProcessArgs("--embed"), nvim.ChildProcessServe(false))
 	if err != nil {
 		panic(err)
 	}
 
+	return ui
+}
+
+func (ui *UI) Serve() error {
+	return ui.nvim.Serve()
+}
+
+func (ui *UI) AttachUI() {
 	ui.nvim.RegisterHandler("redraw", ui.HandleRedraw)
-	ui.nvim.AttachUI(width, height, map[string]interface{}{
+	ui.nvim.AttachUI(ui.width, ui.height, map[string]interface{}{
 		"rgb":          true,
 		"ext_linegrid": true,
 	})
 
-	return ui
 }

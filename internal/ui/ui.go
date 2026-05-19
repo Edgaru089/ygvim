@@ -25,5 +25,8 @@ type UI struct {
 	window *sdl.Window
 	nvim   *nvim.Nvim
 
+	needren  chan struct{}
+	needflip chan struct{}
+
 	fontset *font.Fontset
 }

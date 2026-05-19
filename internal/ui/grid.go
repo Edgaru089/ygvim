@@ -75,26 +75,6 @@ func (g *Grid) Resize(width, height int) {
 		g.cells[i] = g.cells[i][:width]
 	}
 
-	// clear every new cell if there are any
-
-	if g.width < width {
-		// more columns - clear new columns in old lines
-		for i := 0; i < g.height; i++ {
-			for j := g.width; j < width; j++ {
-				g.cells[i][j] = Cell{}
-			}
-		}
-	}
-
-	if g.height < height {
-		// more rows - clear entire new lines
-		for i := g.height; i < height; i++ {
-			for j := 0; j < width; j++ {
-				g.cells[i][j] = Cell{}
-			}
-		}
-	}
-
 	g.width = width
 	g.height = height
 }

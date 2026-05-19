@@ -103,7 +103,8 @@ func main() {
 				//window.SetSize(w, h)
 				w, h, err := window.SizeInPixels()
 				if err == nil {
-					nvimui.SetWindowSize(int(w), int(h))
+					nw, nh := nvimui.SetWindowSize(int(w), int(h))
+					window.SetSize(int32(nw), int32(nh))
 				}
 			}
 		} else {

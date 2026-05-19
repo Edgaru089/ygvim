@@ -41,9 +41,15 @@ func (ui *UI) SetSize(width, height int) {
 }
 
 // SetWindowSize divides the new window size and calls SetSize.
-func (ui *UI) SetWindowSize(width, height int) {
+//
+// It returns the real window size the cells really cover.
+func (ui *UI) SetWindowSize(width, height int) (w, h int) {
 	ui.SetSize(
 		width/ui.cellsize[0],
 		height/ui.cellsize[1],
 	)
+
+	w = width - width%ui.cellsize[0]
+	h = height - height%ui.cellsize[1]
+	return
 }

@@ -1,9 +1,5 @@
-// Package fc provides Go bindings for the fontconfig library.
-//
-// MatchFamily finds the best font file for a given family and optional style.
-//
-// MatchCodepoint finds a font file containing a Unicode codepoint, trying the
-// given families in order and falling back to fontconfig's configured fallbacks.
+//go:build !windows
+
 package fc
 
 /*
@@ -11,29 +7,17 @@ package fc
 #include <fontconfig/fontconfig.h>
 #include <stdlib.h>
 
-extern const char *fc_object_family;
-extern const char *fc_object_style;
-extern const char *fc_object_file;
-extern const char *fc_object_index;
-extern const char *fc_object_charset;
+const char *fc_object_family  = "family";
+const char *fc_object_style   = "style";
+const char *fc_object_file    = "file";
+const char *fc_object_index   = "index";
+const char *fc_object_charset = "charset";
 */
 import "C"
 import (
 	"fmt"
 	"unsafe"
 )
-
-// Font represents a matched font pattern.
-type Font struct {
-	// File is the path to the font file.
-	File string
-	// Family is the font family name.
-	Family string
-	// Style is the font style name (e.g. "Bold", "Italic", "Regular").
-	Style string
-	// Index is the face index within the font file (usually 0).
-	Index int
-}
 
 // MatchFamily finds the best matching font file for the given family name and
 // optional style description. style can be "" to match any style, or a

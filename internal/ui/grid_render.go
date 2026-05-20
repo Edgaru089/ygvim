@@ -45,7 +45,29 @@ func (grid *Grid) updateVertices(ui *UI) {
 	texW, texH := ui.fontset.Texture().W, ui.fontset.Texture().H
 
 	for row, line := range grid.cells {
+		wideskip := false // if the last cell was wide and this one should be skipped
 		for col, cell := range line {
+			if wideskip {
+				wideskip = false
+				continue
+			}
+
+			// get text
+			var ucs rune = -1
+			if len(cell.text) != 0 {
+				ucs, _ = utf8.DecodeRuneInString(cell.text)
+				if ucs == utf8.RuneError {
+					ucs = -1
+				}
+			}
+
+			// double cell width if wide
+			cellW, cellH := ui.cellsize[0], ui.cellsize[1]
+			if cell.wide {
+				cellW *= 2
+				wideskip = true
+			}
+
 			// first vertex indice
 			id := int32(len(grid.vertices))
 			offx, offy := ui.cellsize[0]*col, ui.cellsize[1]*row
@@ -82,17 +104,17 @@ func (grid *Grid) updateVertices(ui *UI) {
 					TexCoord: normalizeTexCoord(0, 0, texW, texH),
 				},
 				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx + ui.cellsize[0]), Y: float32(offy)},
+					Position: sdl.FPoint{X: float32(offx + cellW), Y: float32(offy)},
 					Color:    bg,
 					TexCoord: normalizeTexCoord(2, 0, texW, texH),
 				},
 				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx), Y: float32(offy + ui.cellsize[1])},
+					Position: sdl.FPoint{X: float32(offx), Y: float32(offy + cellH)},
 					Color:    bg,
 					TexCoord: normalizeTexCoord(0, 2, texW, texH),
 				},
 				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx + ui.cellsize[0]), Y: float32(offy + ui.cellsize[1])},
+					Position: sdl.FPoint{X: float32(offx + cellW), Y: float32(offy + cellH)},
 					Color:    bg,
 					TexCoord: normalizeTexCoord(2, 2, texW, texH),
 				},
@@ -101,11 +123,7 @@ func (grid *Grid) updateVertices(ui *UI) {
 			grid.indices = append(grid.indices, id, id+1, id+2, id+1, id+2, id+3)
 
 			// get glyph
-			if len(cell.text) == 0 {
-				continue
-			}
-			ucs, _ := utf8.DecodeRuneInString(cell.text)
-			if ucs == utf8.RuneError {
+			if ucs == -1 {
 				continue
 			}
 			glyph := ui.fontset.Glyph(ucs)

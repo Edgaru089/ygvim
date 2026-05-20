@@ -16,6 +16,7 @@ func InvokeNvim(window *sdl.Window, renderer *sdl.Renderer, width, height int, c
 		width:  width, height: height,
 		cellsize: cellsize,
 		fontset:  font.NewFontset(renderer),
+		drawYoff: -721,
 		needren:  make(chan struct{}, 1),
 		needflip: make(chan struct{}, 1),
 	}

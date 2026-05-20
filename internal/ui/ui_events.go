@@ -43,8 +43,8 @@ func init() {
 	handler["set_title"] = func(ui *UI, args []any) {
 		ui.window.SetTitle(args[0].(string))
 	}
-	handler["busy_start"] = func(ui *UI, args []any) {}
-	handler["busy_stop"] = func(ui *UI, args []any) { /* TODO hide mouse when busy */ }
+	handler["busy_start"] = func(ui *UI, args []any) { sdl.HideCursor() }
+	handler["busy_stop"] = func(ui *UI, args []any) { sdl.ShowCursor() }
 	handler["bell"] = func(ui *UI, args []any) {}
 	handler["visual_bell"] = func(ui *UI, args []any) { /* TODO bells */ }
 
@@ -241,6 +241,13 @@ func init() {
 			}
 		}
 	}
+
+	//////// others ////////
+	handler["win_viewport"] = func(ui *UI, args []any) {}
+	handler["mode_info_set"] = func(ui *UI, args []any) {}
+	handler["mode_change"] = func(ui *UI, args []any) {}
+	handler["mouse_on"] = func(ui *UI, args []any) {}
+	handler["mouse_off"] = func(ui *UI, args []any) {}
 }
 
 // callRedrawEvent calls the given message, recovering if paniced.

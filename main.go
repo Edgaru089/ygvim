@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"runtime"
 	"sync/atomic"
 
 	"github.com/Zyko0/go-sdl3/sdl"
@@ -12,19 +11,13 @@ import (
 	"edgaru089.ink/go/ygvim/internal/util/itype"
 )
 
-func init() {
-	runtime.LockOSThread()
-}
-
 func main() {
 
 	cellsize := itype.Vec2i{8, 16}
 	width, height := 100, 32
 
-	sdl.LoadLibrary(sdl.Path())
-	defer sdl.Quit()
-	ttf.LoadLibrary(ttf.Path())
-	defer ttf.Quit()
+	loadlibrary()
+	defer unloadlibrary()
 
 	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
 		panic(err)
@@ -106,6 +99,26 @@ func main() {
 					nw, nh := nvimui.SetWindowSize(int(w), int(h))
 					window.SetSize(int32(nw), int32(nh))
 				}
+
+			case sdl.EVENT_MOUSE_BUTTON_DOWN:
+				nvimui.MousePress(sdl.MouseButtonFlags(event.MouseButtonEvent().Button))
+			case sdl.EVENT_MOUSE_BUTTON_UP:
+				nvimui.MouseRelease(sdl.MouseButtonFlags(event.MouseButtonEvent().Button))
+			case sdl.EVENT_MOUSE_MOTION:
+				e := event.MouseMotionEvent()
+				nvimui.MouseMove(int(e.X), int(e.Y))
+
+			case sdl.EVENT_MOUSE_WHEEL:
+				e := event.MouseWheelEvent()
+				x, y := int(e.IntegerX), int(e.IntegerY)
+				switch e.Direction {
+				case sdl.MOUSEWHEEL_NORMAL:
+				case sdl.MOUSEWHEEL_FLIPPED:
+					x, y = -x, -y
+				}
+
+				// SDL's positive Y goes up.
+				nvimui.MouseScroll(itype.Vec2i{x, -y})
 			}
 		} else {
 			log.Printf("main: WaitEvent: %e", err)

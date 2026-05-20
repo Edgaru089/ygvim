@@ -102,11 +102,11 @@ func (grid *Grid) updateVertices(ui *UI) {
 
 			// get background & foreground colors
 			hl := ui.hl[cell.hlid]
-			if hl.fg.A != 255 {
-				hl = ui.hl[0]
+			if hl.fg.A == 0 {
+				hl.fg = ui.hl[0].fg
 			}
-			if hl.bg.A != 255 {
-				hl = ui.hl[0]
+			if hl.bg.A == 0 {
+				hl.bg = ui.hl[0].bg
 			}
 			fg := sdl.FColor{
 				R: float32(hl.fg.R) / 255.0,

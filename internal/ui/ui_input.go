@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/Zyko0/go-sdl3/sdl"
@@ -35,6 +36,17 @@ func (ui *UI) InputKey(key sdl.Keycode, mod sdl.Keymod) {
 		ui.nvim.Input("<Esc>")
 	case sdl.K_BACKSPACE:
 		ui.nvim.Input("<BS>")
+	case sdl.K_TAB:
+		ui.nvim.Input("<Tab>")
+	case sdl.K_F1, sdl.K_F2, sdl.K_F3, sdl.K_F4,
+		sdl.K_F5, sdl.K_F6, sdl.K_F7, sdl.K_F8,
+		sdl.K_F9, sdl.K_F10, sdl.K_F11, sdl.K_F12:
+		var buf strings.Builder
+		buf.Grow(8)
+		buf.WriteString("<F")
+		buf.WriteString(strconv.Itoa(int(key - sdl.K_F1 + 1)))
+		buf.WriteByte('>')
+		ui.nvim.Input(buf.String())
 	default:
 		if (mod & sdl.KMOD_CTRL) != 0 {
 

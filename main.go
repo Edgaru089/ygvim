@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"runtime"
 	"sync/atomic"
 
 	"github.com/Zyko0/go-sdl3/sdl"
@@ -41,7 +42,13 @@ func main() {
 		panic(err)
 	}
 
-	ren, err := window.CreateRenderer("vulkan")
+	var rendriver string
+	if runtime.GOOS == "windows" {
+		rendriver = "direct3d11"
+	} else {
+		rendriver = "vulkan"
+	}
+	ren, err := window.CreateRenderer(rendriver)
 	if err != nil {
 		panic(err)
 	}

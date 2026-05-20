@@ -100,7 +100,7 @@ func init() {
 				ui.window.SetSize(int32(ui.cellsize[0]*ui.width), int32(ui.cellsize[1]*ui.height))
 			}
 
-			ui.drawYoff = -999
+			ui.drawXoff = -999
 			ui.SetNeedRender()
 		}
 	}

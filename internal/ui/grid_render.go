@@ -22,15 +22,31 @@ func normalizeTexCoord(texX, texY int, texW, texH int32) sdl.FPoint {
 // updateVertices re-generates vertices & indices for the grid.
 func (grid *Grid) updateVertices(ui *UI) {
 
-	if ui.drawYoff == -999 {
+	if ui.drawXoff == -999 {
 		// calculate glyph vertical alignment
 		// let's be stupid in a new and novel way and use | as reference
 		// let's try centering the | vertically in a cell
 		glyph := ui.fontset.Glyph('|')
 
 		// do remember that positive goes up in a glyph metric, so Top is actually Bottom here
-		ui.drawYoff = float32(ui.cellsize[1])/2 - float32(glyph.TextureRect.Height)/2 + float32(glyph.Bounds.Top+glyph.Bounds.Height)
+		// (stupid i know, it's just font metrics are normal and weird)
+		ui.drawYoff = float32(ui.cellsize[1])/2 - float32(glyph.Bounds.Height)/2 + float32(glyph.Bounds.Top+glyph.Bounds.Height)
 		// so to use this you do ui.drawYoff - float32(Bounds.Top+Bounds.Height) from the top of the cell
+
+		// same thing with wide
+		glyph = ui.fontset.Glyph('上')
+		ui.drawYoffWide = float32(ui.cellsize[1])/2 - float32(glyph.Bounds.Height)/2 + float32(glyph.Bounds.Top+glyph.Bounds.Height)
+
+		// calculate glyph horizontal alignment
+		// lets be stupid yet again and try to center the # char
+		glyph = ui.fontset.Glyph('#')
+
+		ui.drawXoff = float32(ui.cellsize[0])/2 - float32(glyph.Bounds.Width)/2 - float32(glyph.Bounds.Left)
+		// so to use this you do ui.drawXoff + float32(Bounds.Left)
+
+		// same thing with wide version
+		glyph = ui.fontset.Glyph('一')
+		ui.drawXoffWide = float32(ui.cellsize[0]) - float32(glyph.Bounds.Width)/2 - float32(glyph.Bounds.Left)
 	}
 
 	verts2 = verts2[:0]
@@ -140,29 +156,37 @@ func (grid *Grid) updateVertices(ui *UI) {
 			}
 			glyph := ui.fontset.Glyph(ucs)
 
-			cellYoff := int(math.Round(float64(ui.drawYoff) - float64(glyph.Bounds.Top+glyph.Bounds.Height)))
+			var cellXoff, cellYoff int
+			if cell.wide {
+				cellXoff = int(math.Round(float64(ui.drawXoffWide) + float64(glyph.Bounds.Left)))
+				cellYoff = int(math.Round(float64(ui.drawYoffWide) - float64(glyph.Bounds.Top+glyph.Bounds.Height)))
+			} else {
+				cellXoff = int(math.Round(float64(ui.drawXoff) + float64(glyph.Bounds.Left)))
+				cellYoff = int(math.Round(float64(ui.drawYoff) - float64(glyph.Bounds.Top+glyph.Bounds.Height)))
+			}
 
 			// foreground
 			fexX, fexY, fexW, fexH := glyph.TextureRect.Left, glyph.TextureRect.Top, glyph.TextureRect.Width, glyph.TextureRect.Height
+			boundW, boundH := glyph.Bounds.Width, glyph.Bounds.Height
 			id = int32(len(verts2))
 			verts2 = append(verts2,
 				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx), Y: float32(offy + cellYoff)},
+					Position: sdl.FPoint{X: float32(offx + cellXoff), Y: float32(offy + cellYoff)},
 					Color:    fg,
 					TexCoord: normalizeTexCoord(fexX, fexY, texW, texH),
 				},
 				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx + fexW), Y: float32(offy + cellYoff)},
+					Position: sdl.FPoint{X: float32(offx + cellXoff + boundW), Y: float32(offy + cellYoff)},
 					Color:    fg,
 					TexCoord: normalizeTexCoord(fexX+fexW, fexY, texW, texH),
 				},
 				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx), Y: float32(offy + cellYoff + fexH)},
+					Position: sdl.FPoint{X: float32(offx + cellXoff), Y: float32(offy + cellYoff + boundH)},
 					Color:    fg,
 					TexCoord: normalizeTexCoord(fexX, fexY+fexH, texW, texH),
 				},
 				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx + fexW), Y: float32(offy + cellYoff + fexH)},
+					Position: sdl.FPoint{X: float32(offx + cellXoff + boundW), Y: float32(offy + cellYoff + boundH)},
 					Color:    fg,
 					TexCoord: normalizeTexCoord(fexX+fexW, fexY+fexH, texW, texH),
 				},

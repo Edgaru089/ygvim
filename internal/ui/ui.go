@@ -28,8 +28,9 @@ type UI struct {
 	needren  chan struct{}
 	needflip chan struct{}
 
-	fontset  *font.Fontset
-	drawYoff float32 // reset to default as -999
+	fontset *font.Fontset
+
+	drawXoff, drawXoffWide, drawYoff, drawYoffWide float32 // reset to default as -999
 
 	mouseX, mouseY int // mouse position on screen, in cells
 	mouses         sdl.MouseButtonFlags

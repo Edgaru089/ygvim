@@ -102,11 +102,14 @@ func (grid *Grid) updateVertices(ui *UI) {
 
 			// get background & foreground colors
 			hl := ui.hl[cell.hlid]
+			defhl := ui.hl[0]
+			drawbg := true
 			if hl.fg.A == 0 {
-				hl.fg = ui.hl[0].fg
+				hl.fg = defhl.fg
 			}
 			if hl.bg.A == 0 {
-				hl.bg = ui.hl[0].bg
+				hl.bg = defhl.bg
+				drawbg = false
 			}
 			fg := sdl.FColor{
 				R: float32(hl.fg.R) / 255.0,
@@ -122,33 +125,37 @@ func (grid *Grid) updateVertices(ui *UI) {
 			}
 			if row == grid.cursor_row && col == grid.cursor_col {
 				fg, bg = bg, fg
+				drawbg = true
 			}
 
 			// background
-			grid.vertices = append(grid.vertices,
-				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx), Y: float32(offy)},
-					Color:    bg,
-					TexCoord: normalizeTexCoord(0, 0, texW, texH),
-				},
-				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx + cellW), Y: float32(offy)},
-					Color:    bg,
-					TexCoord: normalizeTexCoord(2, 0, texW, texH),
-				},
-				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx), Y: float32(offy + cellH)},
-					Color:    bg,
-					TexCoord: normalizeTexCoord(0, 2, texW, texH),
-				},
-				sdl.Vertex{
-					Position: sdl.FPoint{X: float32(offx + cellW), Y: float32(offy + cellH)},
-					Color:    bg,
-					TexCoord: normalizeTexCoord(2, 2, texW, texH),
-				},
-			)
+			if drawbg {
+				// skip background verts if default color
+				grid.vertices = append(grid.vertices,
+					sdl.Vertex{
+						Position: sdl.FPoint{X: float32(offx), Y: float32(offy)},
+						Color:    bg,
+						TexCoord: normalizeTexCoord(0, 0, texW, texH),
+					},
+					sdl.Vertex{
+						Position: sdl.FPoint{X: float32(offx + cellW), Y: float32(offy)},
+						Color:    bg,
+						TexCoord: normalizeTexCoord(2, 0, texW, texH),
+					},
+					sdl.Vertex{
+						Position: sdl.FPoint{X: float32(offx), Y: float32(offy + cellH)},
+						Color:    bg,
+						TexCoord: normalizeTexCoord(0, 2, texW, texH),
+					},
+					sdl.Vertex{
+						Position: sdl.FPoint{X: float32(offx + cellW), Y: float32(offy + cellH)},
+						Color:    bg,
+						TexCoord: normalizeTexCoord(2, 2, texW, texH),
+					},
+				)
 
-			grid.indices = append(grid.indices, id, id+1, id+2, id+1, id+2, id+3)
+				grid.indices = append(grid.indices, id, id+1, id+2, id+1, id+2, id+3)
+			}
 
 			// get glyph
 			if ucs == -1 {
@@ -223,7 +230,8 @@ func (ui *UI) SetNeedFlip() {
 func (ui *UI) Render(renderer *sdl.Renderer) {
 	ui.Lock()
 	defer ui.Unlock()
-	renderer.SetDrawColor(0, 0, 0, 255)
+	defhl := ui.hl[0]
+	renderer.SetDrawColor(defhl.bg.R, defhl.bg.G, defhl.bg.B, 255)
 	renderer.Clear()
 
 	renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)

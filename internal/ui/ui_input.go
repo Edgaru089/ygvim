@@ -50,18 +50,25 @@ func (ui *UI) InputKey(key sdl.Keycode, mod sdl.Keymod) {
 	default:
 		if (mod & sdl.KMOD_CTRL) != 0 {
 
-			ch := byte(0)
+			ch := ""
 			if key >= sdl.K_0 && key <= sdl.K_9 {
-				ch = (byte)(key - sdl.K_0 + '0')
+				ch = string((byte)(key - sdl.K_0 + '0'))
 			} else if key >= sdl.K_A && key <= sdl.K_Z {
-				ch = (byte)(key - sdl.K_A + 'A')
+				ch = string((byte)(key - sdl.K_A + 'A'))
+			} else {
+				switch key {
+				case sdl.K_BACKSLASH:
+					ch = "\\"
+				case sdl.K_SPACE:
+					ch = "Space"
+				}
 			}
 
-			if ch != 0 {
+			if ch != "" {
 				var buf strings.Builder
-				buf.Grow(8)
+				buf.Grow(16)
 				buf.WriteString("<C-")
-				buf.WriteByte(ch)
+				buf.WriteString(ch)
 				buf.WriteByte('>')
 				ui.nvim.Input(buf.String())
 			}

@@ -67,9 +67,17 @@ func main() {
 	running.Store(true)
 
 	go func() {
-		err := nvimui.Serve()
-		if err != nil {
-			log.Printf("main: nvim.Serve: %e", err)
+		for {
+			err := nvimui.Serve()
+			if err != nil {
+				log.Printf("main: nvim.Serve: %e", err)
+			}
+
+			// if we land here, the child process quited
+			if !nvimui.TryConnectNextAddr() {
+				break
+			}
+			nvimui.AttachUI()
 		}
 		running.Store(false)
 	}()

@@ -22,8 +22,9 @@ type UI struct {
 
 	last_hlid int // the last hl_id seen by grid_line events
 
-	window *sdl.Window
-	nvim   *nvim.Nvim
+	window   *sdl.Window
+	nvim     *nvim.Nvim
+	nextaddr string // used by :restart command, reconnects after child process quit
 
 	needren  chan struct{}
 	needflip chan struct{}

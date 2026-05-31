@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"log"
+
 	"edgaru089.ink/go/ygvim/internal/font"
 	"edgaru089.ink/go/ygvim/internal/util/itype"
 	"github.com/Zyko0/go-sdl3/sdl"
@@ -28,6 +30,32 @@ func InvokeNvim(window *sdl.Window, renderer *sdl.Renderer, width, height int, c
 	}
 
 	return ui
+}
+
+func (ui *UI) Reconnect(target string) (err error) {
+	if ui.nvim != nil {
+		ui.nvim.DetachUI() // errors are ignored
+		ui.nvim.Close()
+	}
+
+	ui.nvim, err = nvim.Dial(target)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ui *UI) TryConnectNextAddr() bool {
+	if ui.nextaddr != "" {
+		err := ui.Reconnect(ui.nextaddr)
+		ui.nextaddr = ""
+		if err != nil {
+			log.Printf("TryConnectNextAddr: dial error: %s", err.Error())
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func (ui *UI) Serve() error {

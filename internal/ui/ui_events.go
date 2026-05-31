@@ -244,6 +244,12 @@ func init() {
 	}
 
 	//////// others ////////
+	handler["restart"] = func(ui *UI, args []any) { ui.nextaddr = args[0].(string) }
+	handler["connect"] = func(ui *UI, args []any) {
+		ui.nextaddr = args[0].(string)
+		ui.nvim.Close()
+	}
+
 	handler["win_viewport"] = func(ui *UI, args []any) {}
 	handler["mode_info_set"] = func(ui *UI, args []any) {}
 	handler["mode_change"] = func(ui *UI, args []any) {}

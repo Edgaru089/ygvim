@@ -83,7 +83,18 @@ func (f *Fontset) getFontTTF(fn *fc.Font, i int) (ft *ttf.Font, err error) {
 
 	// open.
 	log.Printf("Opening new font: %v", fn)
-	ft, err = ttf.OpenFont(fn.File, ptsize)
+
+	prop, err := sdl.NewProperties(map[string]any{
+		"SDL_ttf.font.create.filename": fn.File,
+		"SDL_ttf.font.create.size":     ptsize,
+		"SDL_ttf.font.create.face":     fn.Index,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getFontTTF: error creating properties: %e", err)
+	}
+
+	ft, err = ttf.OpenFontWithProperties(prop)
+	prop.Destroy()
 	if err != nil {
 		return nil, fmt.Errorf("getFontTTF: error opening font: %e", err)
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"runtime"
 	"sync/atomic"
 
@@ -57,7 +58,7 @@ func main() {
 
 	ren.SetVSync(1)
 
-	nvimui := ui.InvokeNvim(window, ren, width, height, cellsize)
+	nvimui := ui.InvokeNvim(window, ren, width, height, cellsize, os.Args[1:]...)
 
 	window.StartTextInput()
 	defer window.StopTextInput()

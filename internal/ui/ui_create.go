@@ -9,7 +9,7 @@ import (
 	"github.com/neovim/go-client/nvim"
 )
 
-func InvokeNvim(window *sdl.Window, renderer *sdl.Renderer, width, height int, cellsize itype.Vec2i) (ui *UI) {
+func InvokeNvim(window *sdl.Window, renderer *sdl.Renderer, width, height int, cellsize itype.Vec2i, args ...string) (ui *UI) {
 
 	ui = &UI{
 		grids:  make(map[int]*Grid),
@@ -24,7 +24,7 @@ func InvokeNvim(window *sdl.Window, renderer *sdl.Renderer, width, height int, c
 	}
 
 	var err error
-	ui.nvim, err = nvim.NewChildProcess(nvim.ChildProcessArgs("--embed"), nvim.ChildProcessServe(false))
+	ui.nvim, err = nvim.NewChildProcess(nvim.ChildProcessArgs(append([]string{"--embed"}, args...)...), nvim.ChildProcessServe(false))
 	if err != nil {
 		panic(err)
 	}

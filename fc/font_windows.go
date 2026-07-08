@@ -266,9 +266,6 @@ func (f *dwriteFontFamily) getFont(index uint32) *dwriteFont {
 }
 
 func (f *dwriteFontFamily) matchFont(style string) (*dwriteFont, error) {
-	if style == "" {
-		return f.getFont(0), nil
-	}
 	weight, s, stretch := parseStyle(style)
 	return f.getFirstMatchingFont(weight, s, stretch)
 }

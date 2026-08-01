@@ -35,6 +35,11 @@ type UI struct {
 
 	mouseX, mouseY int // mouse position on screen, in cells
 	mouses         sdl.MouseButtonFlags
+
+	cursors struct {
+		normal, link *sdl.Cursor
+		prev         *sdl.Cursor
+	}
 }
 
 // SetSize resizes the UI. Callbacks are invoked only when
@@ -58,6 +63,27 @@ func (ui *UI) SetWindowSize(width, height int) (w, h int) {
 	w = width - width%ui.cellsize[0]
 	h = height - height%ui.cellsize[1]
 	return
+}
+
+// GetCell gets the cell at a given line/column coord (starting from 0).
+func (ui *UI) GetCell(line, col int, gridID int) *Cell {
+	grid := ui.grids[gridID]
+	if grid == nil {
+		return nil
+	}
+
+	if line < 0 || line >= len(grid.cells) {
+		return nil
+	}
+	if col < 0 || col >= len(grid.cells[line]) {
+		return nil
+	}
+
+	if col > 0 && grid.cells[line][col-1].wide {
+		return &grid.cells[line][col-1]
+	}
+
+	return &grid.cells[line][col]
 }
 
 func mouseKeyName(key sdl.MouseButtonFlags) string {
